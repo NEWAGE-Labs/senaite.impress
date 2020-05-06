@@ -15,7 +15,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Copyright 2018-2020 by it's authors.
+# Copyright 2018-2019 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
 import json
@@ -23,7 +23,7 @@ import threading
 import time
 from functools import wraps
 
-from bika.lims import api
+from senaite import api
 from senaite.core.supermodel.interfaces import ISuperModel
 from senaite.impress import logger
 from zope.component import queryAdapter
@@ -78,7 +78,8 @@ def returns_super_model(func):
 
         # Only portal objects are supported
         if not api.is_object(obj):
-            return None
+            raise TypeError("Expected a portal object, got '{}'"
+                            .format(type(obj)))
 
         # Wrap the object into a specific Publication Object Adapter
         uid = api.get_uid(obj)
@@ -92,7 +93,7 @@ def returns_super_model(func):
     def decorator(*args, **kwargs):
         obj = func(*args, **kwargs)
         if isinstance(obj, (list, tuple)):
-            return filter(None, map(to_super_model, obj))
+            return map(to_super_model, obj)
         return to_super_model(obj)
 
     return decorator

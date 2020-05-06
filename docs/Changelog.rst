@@ -1,26 +1,7 @@
-1.2.4 (unreleased)
+1.2.2 (unreleased)
 ------------------
 
-- #91 Fix infinite recursion when calling print/publish view w/o items parameter
-- #89 PDF Print View
-- #88 Support context aware report controller views
-
-
-1.2.3 (2020-03-01)
-------------------
-
-- #86 Allow request parameter overrides for template, orientation and paperformat
-
-
-1.2.2 (2019-10-26)
-------------------
-
-- #83: Handle `None` values in decorator more gracefully
-- #82: Fix Date Published is empty on MultiDefault report
-- #81: Rebuild JavaScript bundle with new versions
-- #80: Update Bootstrap CSS to version 4.3.1
-- #79: Use senaite.core.api instead of senaite.api
-- #78: Fix template error on missing lab address data
+- no changes yet
 
 
 1.2.1 (2019-07-01)
