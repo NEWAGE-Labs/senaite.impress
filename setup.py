@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = "1.2.2"
+version = "1.2.3"
 
 with open("docs/About.rst", "r") as fh:
     long_description = fh.read()
@@ -29,8 +29,8 @@ setup(
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     ],
     keywords="",
-    author="SENAITE Foundation",
-    author_email="hello@senaite.com",
+    author="RIDING BYTES & NARALABS",
+    author_email="senaite@senaite.com",
     url="https://github.com/senaite/senaite.impress",
     license="GPLv2",
     packages=find_packages("src", exclude=["ez_setup"]),
@@ -40,14 +40,13 @@ setup(
     zip_safe=False,
     install_requires=[
         "setuptools",
-        "senaite.lims>=1.3.0",
         "beautifulsoup4",
-        "cairocffi<1.0.0",
         "CairoSVG==1.0.20",
+        "cairocffi<1.0.0",
         # Python 2.x is not supported by WeasyPrint v43
         'WeasyPrint==0.42.3',
         # tinycss2 >= 1.0.0 does not support Python 2.x anymore
-        'tinycss2<1.0.0',
+        "tinycss2<1.0.0",
     ],
     extras_require={
         "test": [

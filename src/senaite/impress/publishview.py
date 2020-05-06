@@ -15,19 +15,20 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Copyright 2018-2019 by it's authors.
+# Copyright 2018-2020 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
 import os
 from collections import Iterable
 from collections import OrderedDict
+from functools import reduce
 from string import Template
 
+from bika.lims import api
 from plone.app.i18n.locales.browser.selector import LanguageSelector
 from plone.resource.utils import iterDirectoriesOfType
 from Products.Five import BrowserView
 from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
-from senaite import api
 from senaite.core.supermodel.interfaces import ISuperModel
 from senaite.impress import logger
 from senaite.impress.config import PAPERFORMATS
@@ -40,8 +41,8 @@ from zope.component import ComponentLookupError
 from zope.component import getAdapter
 from zope.component import getMultiAdapter
 from zope.component import getUtility
+from zope.component import queryMultiAdapter
 from zope.interface import implements
-
 
 CSS = Template("""/** Paper Format CSS **/
 @page {
@@ -89,7 +90,47 @@ class PublishView(BrowserView):
         self.request = request
 
     def __call__(self):
+        if self.request.form.get("download", False):
+            return self.download()
         return self.template()
+
+    def download(self):
+        """Generate PDF and send it fot download
+        """
+        form = self.request.form
+        # This is the html after it was rendered by the client browser and
+        # eventually extended by JavaScript, e.g. Barcodes or Graphs added etc.
+        # NOTE: It might also contain multiple reports!
+        html = form.get("html", "")
+        # convert to unicode
+        # https://github.com/senaite/senaite.impress/pull/93
+        html = api.safe_unicode(html)
+        # get the selected template
+        template = form.get("template")
+        # get the selected paperformat
+        paperformat = form.get("format")
+        # get the selected orientation
+        orientation = form.get("orientation", "portrait")
+        # get the filename
+        filename = form.get("filename", "{}.pdf".format(template))
+        # Generate the print CSS with the set format/orientation
+        css = self.get_print_css(
+            paperformat=paperformat, orientation=orientation)
+        logger.info(u"Print CSS: {}".format(css))
+        # get the publisher instance
+        publisher = self.publisher
+        # add the generated CSS to the publisher
+        publisher.add_inline_css(css)
+        # generate the PDF
+        pdf = publisher.write_pdf(html)
+
+        self.request.response.setHeader(
+            "Content-Disposition", "attachment; filename=%s.pdf" % filename)
+        self.request.response.setHeader("Content-Type", "application/pdf")
+        self.request.response.setHeader("Content-Length", len(pdf))
+        self.request.response.setHeader("Cache-Control", "no-store")
+        self.request.response.setHeader("Pragma", "no-cache")
+        self.request.response.write(pdf)
 
     @property
     def portal(self):
@@ -131,14 +172,25 @@ class PublishView(BrowserView):
     def get_uids(self):
         """Parse the UIDs from the request `items` parameter
         """
-        return filter(None, self.request.get("items", "").split(","))
+        return filter(api.is_uid, self.request.get("items", "").split(","))
 
-    def get_collection(self, uids=None, group_by=None):
-        """Wraps the given UIDs into a collection of SuperModels
+    def get_request_parameter(self, parameter, default=None):
+        """Returns the request parameter
         """
-        if uids is None:
-            uids = self.get_uids()
+        return self.request.get(parameter, default)
+
+    def get_collection(self, uids, group_by=None):
+        """Wraps the given UIDs into a collection of SuperModels
+
+        :param uids: list of UIDs
+        :param group_by: Grouping field accessor, e.g getClientUID
+        :returns: list of SuperModels
+        """
         collection = []
+
+        # filter out all non-UIDs
+        uids = filter(api.is_uid, uids)
+
         for model in map(self.to_model, uids):
             if model.is_valid():
                 collection.append(model)
@@ -175,13 +227,32 @@ class PublishView(BrowserView):
         # any other content type as well.
         return self.request.form.get("type", "AnalysisRequest")
 
+    def get_report_view_controller(self, model_or_collection, interface):
+        """Get a suitable report view controller
+
+        Query the controller view as a multi-adapter to allow 3rd party
+        overriding with a browser layer.
+        """
+        name = self.get_report_type()
+
+        context = self.context
+        request = self.request
+
+        # Give precedence to multiadapters that adapt the context as well
+        view = queryMultiAdapter(
+            (context, model_or_collection, request), interface, name=name)
+        if view is None:
+            # Return the default multiadapter
+            return getMultiAdapter(
+                (model_or_collection, request), interface, name=name)
+        return view
+
     def render_report(self, model, template, paperformat, orientation, **kw):
         """Render a SuperModel to HTML
         """
-        _type = self.get_report_type()
-        # Query the controller view as a multi-adapter to allow 3rd party
-        # overriding with a browser layer
-        view = getMultiAdapter((model, self.request), IReportView, name=_type)
+        # get the report view controller
+        view = self.get_report_view_controller(model, IReportView)
+
         options = kw
         # pass through the calculated dimensions to the template
         options.update(self.calculate_dimensions(paperformat, orientation))
@@ -191,11 +262,9 @@ class PublishView(BrowserView):
     def render_multi_report(self, collection, template, paperformat, orientation, **kw):  # noqa
         """Render multiple SuperModels to HTML
         """
-        _type = self.get_report_type()
-        # Query the controller view as a multi-adapter to allow 3rd party
-        # overriding with a browser layer
-        view = getMultiAdapter(
-            (collection, self.request), IMultiReportView, name=_type)
+        # get the report view controller
+        view = self.get_report_view_controller(collection, IMultiReportView)
+
         options = kw
         # pass through the calculated dimensions to the template
         options.update(self.calculate_dimensions(paperformat, orientation))
@@ -266,6 +335,9 @@ class PublishView(BrowserView):
     def get_default_template(self, default="senaite.lims:Default.pt"):
         """Returns the configured default template from the registry
         """
+        template = self.get_request_parameter("template")
+        if self.template_exists(template):
+            return template
         template = api.get_registry_record(
             "senaite.impress.default_template")
         if template is None:
@@ -275,6 +347,9 @@ class PublishView(BrowserView):
     def get_default_paperformat(self, default="A4"):
         """Returns the configured default paperformat from the registry
         """
+        paperformat = self.get_request_parameter("paperformat")
+        if paperformat in self.get_paperformats():
+            return paperformat
         paperformat = api.get_registry_record(
             "senaite.impress.default_paperformat")
         if paperformat is None:
@@ -284,6 +359,9 @@ class PublishView(BrowserView):
     def get_default_orientation(self, default="portrait"):
         """Returns the configured default orientation from the registry
         """
+        orientation = self.get_request_parameter("orientation")
+        if orientation in ["portrait", "landscape"]:
+            return orientation
         orientation = api.get_registry_record(
             "senaite.impress.default_orientation")
         if orientation is None:
@@ -303,6 +381,17 @@ class PublishView(BrowserView):
         mode = api.get_registry_record(
             "senaite.impress.developer_mode", False)
         return mode
+
+    def template_exists(self, template):
+        """Checks if the template exists
+        """
+        if not template:
+            return False
+        finder = getUtility(ITemplateFinder)
+        template_path = finder.find_template(template)
+        if template_path is None:
+            return False
+        return True
 
     def get_report_template(self, template=None):
         """Returns the path of report template
