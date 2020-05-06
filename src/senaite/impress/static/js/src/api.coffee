@@ -38,9 +38,7 @@ class PublishAPI
     segments = location.pathname.split "/"
     current_view = segments[segments.length-1]
     url = @get_base_url().split(current_view)[0]
-    # we also pass back eventual query parameters to the API
-    params = location.search
-    return "#{url}#{api_endpoint}/#{endpoint}#{params}"
+    return "#{url}#{api_endpoint}/#{endpoint}"
 
 
   get_url_parameter: (name) ->
@@ -120,43 +118,6 @@ class PublishAPI
     options =
       data: data
     return @get_json("save_reports", options)
-
-
-  print_pdf: (options) ->
-    ###
-     * Send an async request to the server and download the file
-    ###
-
-    # wrap all options into form data
-    formData = new FormData()
-    formData.set("download", "1")
-    for key, value of options
-      formData.set(key, value)
-
-    # Prepare the POST request
-    url = @get_base_url()
-    init =
-      method: "POST"
-      body: formData
-      credentials: "include"
-    request = new Request(url, init)
-
-    # submit the POST and display the PDF in a new window
-    return fetch(request).then (response) ->
-      return response.blob()
-    .then (blob) ->
-      # open the PDF in a separate window
-      url= window.URL.createObjectURL(blob)
-      window.open(url, "_blank")
-
-      # Alternate way to download a named PDF
-      #
-      # window.URL.revokeObjectURL(url)
-      # use this for immediate download
-      # fileLink = document.createElement("a")
-      # fileLink.href = url
-      # fileLink.download = options.filename or "Report.pdf"
-      # fileLink.click()
 
 
   load_preview: (data) ->

@@ -15,7 +15,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Copyright 2018-2020 by it's authors.
+# Copyright 2018-2019 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
 import logging
@@ -26,7 +26,7 @@ from string import Template
 
 import bs4
 from plone.subrequest import subrequest
-from bika.lims import api
+from senaite import api
 from senaite.impress import logger
 from senaite.impress.decorators import synchronized
 from senaite.impress.interfaces import IPublisher
