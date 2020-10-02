@@ -139,6 +139,37 @@ class ReportView(Base):
         """
         return api.get_registry_record("senaite.impress.footer")
 
+    def get_IDs(self, model_or_collection):
+        """Returns the IDs of all of the ARs
+        """
+        id_list = self.to_list(model_or_collection)
+        ids = []
+        for x in id_list:
+            ids.append(x.getId())
+        return ids
+
+    def get_subgroups(self, model_or_collection):
+        """Returns the unique SubGroup Titles of all of the ARs
+        """
+        id_list = self.to_list(model_or_collection)
+        subgroups = []
+        for x in id_list:
+            if x.SubGroup.Title in subgroups:
+                pass
+            else:
+                subgroups.append(x.SubGroup.Title)
+        return subgroups
+
+    def get_subcollection(self, model_or_collection, subgroup):
+        """Returns only the ARs within the current subgroup
+        """
+        id_list = self.to_list(model_or_collection)
+        subcollection = []
+        for x in id_list:
+            if x.SubGroup.Title == subgroup:
+                subcollection.append(x)
+        return subcollection
+
     def get_analyses(self, model_or_collection):
         """Returns a flat list of all analyses for the given model or collection
         """
@@ -180,6 +211,21 @@ class ReportView(Base):
                 return analysis.review_state != "rejected"
             analyses = filter(is_not_rejected, analyses)
         return self.sort_items(analyses)
+
+	def get_untitled_analyses(self, model_or_collection):
+		analyses = self.get_analyses(model_or_collection)
+
+	def get_anion_analyses(self, model_or_collection):
+		analyses = self.get_analyses(model_or_collection)
+
+	def get_cation_analyses(self, model_or_collection):
+		analyses = self.get_analyses(model_or_collection)
+
+	def get_trace_analyses(self, model_or_collection):
+		analyses = self.get_analyses(model_or_collection)
+
+	def get_nitrogen_analyses(self, model_or_collection):
+		analyses = self.get_analyses(model_or_collection)
 
     def get_analyses_by_poc(self, model_or_collection):
         """Groups the given analyses by their point of capture

@@ -147,10 +147,50 @@ class SuperModel(BaseModel):
             decimalmark=self.decimal_mark,
             sciformat=self.scientific_notation)
         return "[&plusmn; {}]".format(uncertainty)
-
+#Start Custom Methods
     def get_analyst_initials(self, analysis):
         return analysis.getAnalystInitials()
 
+    def get_optimal_high_level(self, analysis):
+        specs = analysis.getResultsRange()
+        return specs.get('max', 0)
+
+    def get_optimal_low_level(self, analysis):
+        specs = analysis.getResultsRange()
+        return specs.get('min', 0)
+
+    def get_result_bar_percentage(self, analysis):
+        specs = analysis.getResultsRange()
+        min_str = specs.get('min', 0).strip()
+        max_str = specs.get('max', 0).strip()
+        result_str = analysis.getResult().strip()
+        min = -1
+        max = -1
+        result = -1
+
+        try:
+            min = float(min_str)
+        except ValueError:
+            pass
+        try:
+            max = float(max_str)
+        except ValueError:
+            pass
+        try:
+            result = float(result_str)
+        except ValueError:
+            pass
+
+        perc = 0
+        if min != -1 and max != -1 and result != -1:
+            if result <= min:
+                perc = (result/min)*(100/3)
+            elif result >= max:
+                perc = (200/3) + ((100/3)-(100/3)/(result/max))
+            else:
+                perc = (100/3) + (((result-min)/(max-min))*(100/3))
+        return perc
+#End Custom Methods
     def get_formatted_specs(self, analysis):
         specs = analysis.getResultsRange()
         fs = ''
