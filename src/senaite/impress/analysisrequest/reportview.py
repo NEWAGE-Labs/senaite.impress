@@ -170,6 +170,26 @@ class ReportView(Base):
                 subcollection.append(x)
         return subcollection
 
+    def get_new_model(self, subcollection):
+        """Returns only the model listed as *New Growth*
+        """
+        id_list = self.to_list(subcollection)
+        new_growth = []
+        for x in id_list:
+            if x.NewLeaf == True:
+                new_growth.append(x)
+        return new_growth[0]
+
+    def get_old_model(self, subcollection):
+        """Returns only the model listed as *Old Growth*
+        """
+        id_list = self.to_list(subcollection)
+        old_growth = []
+        for x in id_list:
+            if x.NewLeaf == False:
+                old_growth.append(x)
+        return old_growth[0]
+
     def get_analyses(self, model_or_collection):
         """Returns a flat list of all analyses for the given model or collection
         """

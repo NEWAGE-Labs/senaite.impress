@@ -28,6 +28,7 @@ from bika.lims import api
 from senaite.core.supermodel import SuperModel as BaseModel
 from senaite.impress import logger
 from senaite.impress.decorators import returns_super_model
+from math import log10, floor
 
 
 class SuperModel(BaseModel):
@@ -182,6 +183,8 @@ class SuperModel(BaseModel):
             pass
 
         perc = 0
+        if result < float(analysis.getLowerDetectionLimit()):
+            result = 0
         if min != -1 and max != -1 and result != -1:
             if result <= min:
                 perc = (result/min)*(100/3)
@@ -190,6 +193,21 @@ class SuperModel(BaseModel):
             else:
                 perc = (100/3) + (((result-min)/(max-min))*(100/3))
         return perc
+
+    def get_formatted_result_or_NT(self, analysis, digits):
+        """Return formatted result or NT
+        """
+        result = analysis.getResult()
+        if result == "":
+            return "NT"
+        elif float(result) < float(analysis.getLowerDetectionLimit()):
+            return "< " + "0.1"
+        else:
+            result = float(result)
+            result = round(result, digits-int(floor(log10(abs(result)))))
+            if result >= 10:
+                result = int(result)
+            return result
 #End Custom Methods
     def get_formatted_specs(self, analysis):
         specs = analysis.getResultsRange()
