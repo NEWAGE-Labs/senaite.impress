@@ -26,6 +26,7 @@ from operator import itemgetter
 from string import Template
 
 import DateTime
+from datetime import date
 from bika.lims import POINTS_OF_CAPTURE
 from bika.lims.interfaces import IInternalUse
 from bika.lims.workflow import getTransitionDate
@@ -148,6 +149,26 @@ class ReportView(Base):
             ids.append(x.getId())
         return ids
 
+    def get_sample_count(self, model_or_collection):
+        """Returns the number of samples in the report
+        """
+        supermodels = self.to_list(model_or_collection)
+        count = 0;
+        for x in supermodels:
+            count +=1
+        return count
+
+    def get_sap_report_count(self, model_or_collection):
+        """Returns the number of pages in a comparison sap report.
+        """
+        samples = self.get_sample_count(model_or_collection)
+        sample_pages = samples/2
+        cover_letter = 1
+        blank_page = 1
+        COC = 1 #Needs to be made dynamic
+        count = sample_pages + cover_letter + blank_page + COC
+        return count
+
     def get_subgroups(self, model_or_collection):
         """Returns the unique SubGroup Titles of all of the ARs
         """
@@ -189,6 +210,17 @@ class ReportView(Base):
             if x.NewLeaf == False:
                 old_growth.append(x)
         return old_growth[0]
+
+    def get_one_model(self, collection):
+        """Returns the first model of a collection
+        """
+        return collection[0]
+
+    def get_today(self):
+        """Returns today's date as [Month Day, Year]
+        Example: October 16th, 2020
+        """
+        return date.today().strftime("%B %d, %Y")
 
     def get_analyses(self, model_or_collection):
         """Returns a flat list of all analyses for the given model or collection

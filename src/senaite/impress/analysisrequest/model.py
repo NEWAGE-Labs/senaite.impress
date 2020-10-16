@@ -208,6 +208,12 @@ class SuperModel(BaseModel):
             if result >= 10:
                 result = int(result)
             return result
+
+    def get_received_date(self):
+        """Returns the batch date formatted as [Month Day, Year]
+        """
+        batch = self.getBatch().getBatchDate()
+        return batch.strftime("%B %d, %Y")
 #End Custom Methods
     def get_formatted_specs(self, analysis):
         specs = analysis.getResultsRange()
