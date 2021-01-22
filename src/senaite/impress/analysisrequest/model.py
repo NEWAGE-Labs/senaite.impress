@@ -15,7 +15,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Copyright 2018-2021 by it's authors.
+# Copyright 2018-2020 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
 import itertools
@@ -144,6 +144,74 @@ class SuperModel(BaseModel):
             decimalmark=self.decimal_mark,
             sciformat=self.scientific_notation)
         return "[&plusmn; {}]".format(uncertainty)
+        
+#Start Custom Methods
+    def get_analyst_initials(self, analysis):
+        return analysis.getAnalystInitials()
+
+    def get_optimal_high_level(self, analysis):
+        specs = analysis.getResultsRange()
+        return specs.get('max', 0)
+
+    def get_optimal_low_level(self, analysis):
+        specs = analysis.getResultsRange()
+        return specs.get('min', 0)
+
+    def get_result_bar_percentage(self, analysis):
+        specs = analysis.getResultsRange()
+        min_str = specs.get('min', 0).strip()
+        max_str = specs.get('max', 0).strip()
+        result_str = analysis.getResult().strip()
+        min = -1
+        max = -1
+        result = -1
+
+        try:
+            min = float(min_str)
+        except ValueError:
+            pass
+        try:
+            max = float(max_str)
+        except ValueError:
+            pass
+        try:
+            result = float(result_str)
+        except ValueError:
+            pass
+
+        perc = 0
+        if result < float(analysis.getLowerDetectionLimit()):
+            result = 0
+        if min != -1 and max != -1 and result != -1:
+            if result <= min:
+                perc = (result/min)*(100/3)
+            elif result >= max:
+                perc = (200/3) + ((100/3)-(100/3)/(result/max))
+            else:
+                perc = (100/3) + (((result-min)/(max-min))*(100/3))
+        return perc
+
+    def get_formatted_result_or_NT(self, analysis, digits):
+        """Return formatted result or NT
+        """
+        result = analysis.getResult()
+        if result == "":
+            return "NT"
+        elif float(result) < float(analysis.getLowerDetectionLimit()):
+            return "< " + "0.1"
+        else:
+            result = float(result)
+            result = round(result, digits-int(floor(log10(abs(result)))))
+            if result >= 10:
+                result = int(result)
+            return result
+
+    def get_received_date(self):
+        """Returns the batch date formatted as [Month Day, Year]
+        """
+        batch = self.getBatch().getBatchDate()
+        return batch.strftime("%B %d, %Y")
+#End Custom Methods
 
     def get_formatted_specs(self, analysis):
         specs = analysis.getResultsRange()

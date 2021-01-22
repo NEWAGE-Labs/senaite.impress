@@ -1,0 +1,1859 @@
+<!--
+AUTHOR:   Paul VanderWeele
+DATE:     8/1/2019
+PURPOSE:  Comparison Sap Report for NEWAGE LIMS
+EDITS:
+ -->
+
+ <!-- BEGIN Variables -->
+<tal:report
+  condition="python:True"
+  i18n:domain="senaite.impress"
+  define="collection view/collection;
+          laboratory view/laboratory;
+          reporter python:view.current_user;
+          accredited_symbol string:*;
+          outofrange_symbol string:⚠;
+          footer python:view.get_footer_text();
+          report_options python:options.get('report_options', {});
+          attachments_per_row python:int(report_options.get('attachments_per_row', 2));
+          attachments_per_row python:attachments_per_row<1 and 1 or attachments_per_row;
+          page_width options/page_width|nothing;
+          page_height options/page_height|nothing;
+          content_width options/content_width|nothing;
+          content_height options/content_height|nothing;">
+ <!-- END Variables -->
+  <!-- BEGIN Custom Report Controls -->
+  <div id="controls" class="noprint">
+    <div i18n:translate="" class="text-secondary mb-2">Custom Report Options</div>
+    <div class="mb-3">
+      <!-- BEGIN Attachments per row -->
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <label class="input-group-text" for="attachments_per_row" i18n:translate="">
+            Attachments per Row
+          </label>
+        </div>
+        <input tal:attributes="value attachments_per_row"
+               type="number"
+               class="form-control"
+               name="attachments_per_row"
+               min="1"/>
+      </div>
+      <!-- END Attachments per row -->
+      <small class="form-text text-muted" i18n:translate="">
+        Number of attachments rendered within one row per Analysis Request
+      </small>
+    </div>
+  </div>
+  <!-- END Custom Report Controls -->
+  <!-- BEGIN Ensure custom report options are applied to rendering -->
+  <script type="text/javascript">
+   console.info("######################################################################");
+   window.options = "<tal:t replace='options'/>";
+   console.log(window.options);
+   console.info("######################################################################");
+  </script>
+  <!-- END Ensure custom report options are applied to rendering -->
+
+  <!-- BEGIN CSS Styling -->
+  <tal:css>
+    <style type="text/css">
+      .report-image {font-size: 8pt; margin-top: -45pt; padding-top: 0pt;}
+      .report-image div.body tr {border-top: 1pt black solid; border-bottom: 1pt black solid;}
+      .report-image div.body td {padding: 0; font-size: 6pt;}
+      .report-image div.body td div {font-size: 5.5pt;}
+      span.high-spec, span.low-spec, div.header-label, div.result {font-weight: bold;}
+      .report-image div.header {margin-left: -35pt; padding-left: 0; width: 102%;}
+      .report-image div.body {width: 120%;}
+      .report-image div.header-table {height: 130pt;}
+      .report-image td.logo-frame {height: 130pt;
+                                  width: 150pt;
+                                  padding: 0;
+                                  margin: 0;
+                                  vertical-align: middle;
+                                  text-align: center;
+                                  display: table-cell;}
+      .report-image img.logo {max-width: 100%;}
+      td.full-header-cell {height: 130pt; vertical-align: top; padding: 0 0 0 15pt; margin: 0 0 0 0;}
+      td.full-header-cell td {vertical-align: top; padding: 0; margin: 0;}
+      td.col1 {width: 136pt;}
+      td.col2 {width: 136pt;}
+      td.col3 {width: 136pt;}
+      tr.row1 {height: 60pt;}
+      tr.row2 {height: 30pt;}
+      tr.row3 {height: 30pt;}
+      div.subrow {height: 20pt;}
+      div.header-detail {margin-left: 15pt; font-size: 7.5pt;}
+    </style>
+  </tal:css>
+  <!-- END CSS Styling -->
+  <div class="report-image">
+    <div class="header row col-lg-12">
+      <strong style="font-size: 2em;">SAP ANALYSIS REPORT</strong>
+      <div class="header-table">
+        <table>
+          <colgroup>
+            <col style="width:25%">
+            <col style="width:75%">
+          </colgroup>
+          <tr>
+            <td class="logo-frame">
+              <div>
+              <img class="logo"
+                   tal:attributes="src python:view.get_resource_url('logo_print.png')"/>
+                 </div>
+            </td>
+            <td class="full-header-cell">
+              <table>
+                <colgroup>
+                  <col style="width: 34%">
+                  <col style="width: 33%">
+                  <col style="width: 33%">
+                <colgroup>
+                <tr class="row1">
+                  <td class="data-reported-to col1">
+                    <div class="header-label">Data Reported To:</div>
+                    <tal:model repeat="model collection">
+                      <tal:once condition="model/NewLeaf">
+                        <div class="header-detail">
+                          <div class="client-name">
+                            <div tal:replace="model/Client/Name|nothing"></div>
+                          </div>
+                          <div class="client-street">
+                            <div tal:replace="model/Client/PostalAddress/address|nothing"></div>
+                          </div>
+                          <div class="client-city">
+                            <div tal:replace="model/Client/PostalAddress/city|nothing"></div>
+                          </div>
+                          <span class="client-state">
+                            <div tal:replace="model/Client/PostalAddress/state|nothing"></div>
+                          </span>
+                          <span class="client-zip">
+                            <div tal:replace="model/Client/PostalAddress/zip|nothing"></div>
+                          </span>
+                        </div>
+                      </tal:once>
+                    </tal:model>
+                  </td>
+                  <td class="sample-submitted-for col2">
+                    <div class="header-label">Sample Submitted For:</div>
+                    <tal:model repeat="model collection">
+                      <tal:once condition="model/NewLeaf">
+                        <div class="header-detail">
+                          <div class="client-name">
+                            <div tal:replace="model/Contact/Name|nothing"></div>
+                          </div>
+                          <div class="client-street">
+                            <div tal:replace="model/Contact/PostalAddress/address|nothing"></div>
+                          </div>
+                          <div class="client-city">
+                            <div tal:replace="model/Contact/PostalAddress/city|nothing"></div>
+                          </div>
+                          <span class="client-state">
+                            <div tal:replace="model/Contact/PostalAddress/state|nothing"></div>
+                          </span>
+                          <span class="client-zip">
+                            <div tal:replace="model/Contact/PostalAddress/zip|nothing"></div>
+                          </span>
+                        </div>
+                      </tal:once>
+                    </tal:model>
+                  </td>
+                  <td class="col3">
+                    <tal:model repeat="model collection">
+                      <tal:once condition="model/NewLeaf">
+                        <div class="nal-acct-id subrow">
+                          <div class="header-label">NAL Acct. ID:</div>
+                          <div class="header-detail" style="margin-top: -1pt;">
+                            <div tal:replace="model/Client/ClientID|nothing"></div>
+                          </div>
+                        </div>
+                        <div class="plant-type subrow">
+                          <div class="header-label">Plant Type:</div>
+                          <div class="header-detail" style="margin-top: -1pt;">
+                            <div tal:replace="model/PlantType|nothing" class="header-detail"></div>
+                          </div>
+                        </div>
+                        <div class="variety subrow">
+                          <div class="header-label">Variety:</div>
+                          <div class="header-detail" style="margin-top: -1pt;">
+                            <div tal:replace="model/Variety|nothing" class="header-detail"></div>
+                          </div>
+                        </div>
+                      </tal:once>
+                    </tal:model>
+                  </td>
+                </tr>
+                <tr class="row2">
+                <td class="sample-name col1">
+                  <div class="header-label">Sample Name:</div>
+                  <tal:model repeat="model collection">
+                    <tal:new condition="model/NewLeaf">
+                      <div class="header-detail">
+                        <span style="font-weight: bold;">1: </span>
+                        <span tal:replace="model/ClientSampleID|nothing"></span>
+                      </div>
+                    </tal:new>
+                    <tal:old condition="not: model/NewLeaf">
+                      <div class="header-detail">
+                        <span style="font-weight: bold;">2: </span>
+                        <span tal:replace="model/ClientSampleID|nothing"></span>
+                      </div>
+                    </tal:old>
+                  </tal:model>
+                </td>
+                <td class="nal-sample-id col2">
+                  <div class="header-label">NAL Sample ID #:</div>
+                  <tal:model repeat="model collection">
+                    <tal:new condition="model/NewLeaf">
+                      <div class="header-detail">
+                        <span style="font-weight: bold;">1: </span>
+                        <span tal:replace="model/getId|nothing"></span>
+                      </div>
+                    </tal:new>
+                    <tal:old condition="not: model/NewLeaf">
+                      <div class="header-detail">
+                        <span style="font-weight: bold;">2: </span>
+                        <span tal:replace="model/getId|nothing"></span>
+                      </div>
+                    </tal:old>
+                  </tal:model>
+                </td>
+                <td class="growth-stage col3">
+                  <div class="header-label">Growth Stage:</div>
+                  <tal:model repeat="model collection">
+                    <tal:once condition="model/NewLeaf">
+                      <div class="header-detail">
+                        <div tal:replace="model/GrowthStage|nothing"></div>
+                      </div>
+                    </tal:once>
+                  </tal:model>
+                </td>
+                </tr>
+                <tr class="row3">
+                <td class="date-time-sampled col1">
+                  <div class="header-label">Date/Time Sampled:</div>
+                    <tal:model repeat="model collection">
+                      <tal:new condition="model/NewLeaf">
+                        <div class="header-detail">
+                          <span style="font-weight: bold;">1: </span>
+                          <span tal:replace="python:view.to_localized_time(model.DateSampled)"></span>
+                        </div>
+                      </tal:new>
+                      <tal:old condition="not: model/NewLeaf">
+                        <div class="header-detail">
+                          <span style="font-weight: bold;">2: </span>
+                          <span tal:replace="python:view.to_localized_time(model.DateSampled)"></span>
+                        </div>
+                      </tal:old>
+                    </tal:model>
+                </td>
+                <td class="date-time-received col2">
+                  <div class="header-label">Date/Time Received:</div>
+                    <tal:model repeat="model collection">
+                      <tal:batch define="batch model/Batch">
+                        <tal:new condition="model/NewLeaf">
+                          <div class="header-detail">
+                            <span style="font-weight: bold;">1: </span>
+                            <span tal:replace="python:view.to_localized_time(batch.BatchDate)"></span>
+                          </div>
+                        </tal:new>
+                        <tal:old condition="not: model/NewLeaf">
+                          <div class="header-detail">
+                            <span style="font-weight: bold;">2: </span>
+                            <span tal:replace="python:view.to_localized_time(batch.BatchDate)"></span>
+                          </div>
+                        </tal:old>
+                      </tal:batch>
+                    </tal:model>
+                </td>
+                <td class="sample-location col3">
+                  <div class="header-label">Sample Location:</div>
+                    <tal:model repeat="model collection">
+                      <tal:new condition="model/NewLeaf">
+                        <div class="header-detail">
+                          <span style="font-weight: bold;">1: </span>
+                          <span tal:replace="model/SamplePoint/title|nothing"></span>
+                        </div>
+                      </tal:new>
+                      <tal:old condition="not: model/NewLeaf">
+                        <div class="header-detail">
+                          <span style="font-weight: bold;">2: </span>
+                          <span tal:replace="model/SamplePoint/title|nothing"></span>
+                        </div>
+                      </tal:old>
+                    </tal:model>
+                </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+    </div>
+
+    <div class="body row col-lg-12">
+      <table>
+        <colgroup>
+  		    <!-- Parameter -->
+  		    <col style="width: 21%;">
+  		    <!-- Unit -->
+  		    <col style="width: 4%">
+          <!-- Optimal Range -->
+          <col style="width: 10%">
+  		    <!-- Result -->
+  		    <col style="width: 10%;">
+          <!-- Sample Order -->
+  		    <col style="width: 4%;">
+          <!-- Graph -->
+  		    <col style="width: 51%">
+        </colgroup>
+
+        <thead>
+          <tr style="background-color: #f7b330;" >
+            <th>Parameter</th>
+            <th style="text-align: center;">Units</th>
+            <th style="text-align: center;">OLs</th>
+            <th style="text-align: center;">Result</th>
+            <th></th>
+            <th style="text-align: center;">
+              <span style="margin-right: 80px;">Low</span>
+              <span style="margin-right: 80px;">Optimal</span>
+              <span>High</span>
+            </th>
+          <tr>
+        </thead>
+        <tbody tal:define="model collection">
+          <tr class="sugars">
+            <td style="vertical-align: text-top;">
+              <strong>Sugars, Total</strong>
+            </td>
+            <td>
+              <div>%</div>
+              <div>%</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sugars, Total');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sugars, Total');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sugars, Total');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sugars, Total');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="brix">
+            <td style="vertical-align: text-top;">
+              <strong>Brix</strong>
+            </td>
+            <td>
+              <div>-</div>
+              <div>-</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Brix');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Brix');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Brix');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Brix');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="ph">
+            <td style="vertical-align: text-top;">
+              <strong>pH</strong>
+            </td>
+            <td>
+              <div>-</div>
+              <div>-</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='pH');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='pH');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='pH');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='pH');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="ec">
+            <td style="vertical-align: text-top;">
+              <strong>EC</strong>
+            </td>
+            <td>
+              <div>ms/cm</div>
+              <div>ms/cm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='EC');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='EC');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='EC');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='EC');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="anions colored-row" style="background-color: #f7b330;">
+            <td>
+              <strong style="font-size: 8pt;">Anions</strong>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+            </td>
+            <td>
+            </td>
+          </tr>
+          <tr class="chloride">
+            <td style="vertical-align: text-top;">
+              <strong>Chloride (Cl)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Chloride (Cl-)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Chloride (Cl-)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Chloride (Cl-)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Chloride (Cl-)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="sulfur">
+            <td style="vertical-align: text-top;">
+              <strong>Sulfur (S)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sulfur (S)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sulfur (S)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sulfur (S)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sulfur (S)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="phosphorous">
+            <td style="vertical-align: text-top;">
+              <strong>Phosphorous (P)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Phosphorous (P)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Phosphorous (P)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Phosphorous (P)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Phosphorous (P)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="cations colored-row" style="background-color: #f7b330;">
+            <td>
+              <strong style="font-size: 8pt;">Cations</strong>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+            </td>
+            <td>
+            </td>
+          </tr>
+          <tr class="calcium">
+            <td style="vertical-align: text-top;">
+              <strong>Calcium (Ca)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Calcium (Ca)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Calcium (Ca)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Calcium (Ca)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Calcium (Ca)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="potassium">
+            <td style="vertical-align: text-top;">
+              <strong>Potassium (K)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Potassium (K)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Potassium (K)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Potassium (K)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Potassium (K)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="k-ca-ratio">
+            <td style="vertical-align: text-top;">
+              <strong>K/Ca Ratio</strong>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='K/Ca Ratio');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='K/Ca Ratio');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="magnesium">
+            <td style="vertical-align: text-top;">
+              <strong>Magnesium (Mg)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Magnesium (Mg)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Magnesium (Mg)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Magnesium (Mg)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Magnesium (Mg)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="sodium">
+            <td style="vertical-align: text-top;">
+              <strong>Sodium (Na)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sodium (Na)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Sodium (Na)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sodium (Na)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Sodium (Na)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="trace-elements colored-row" style="background-color: #f7b330;">
+            <td>
+              <strong style="font-size: 8pt;">Trace Elements</strong>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+            </td>
+            <td>
+            </td>
+          </tr>
+          <tr class="aluminum">
+            <td style="vertical-align: text-top;">
+              <strong>Aluminum (Al)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Aluminum (Al)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Aluminum (Al)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Aluminum (Al)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Aluminum (Al)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="boron">
+            <td style="vertical-align: text-top;">
+              <strong>Boron (B)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Boron (B)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Boron (B)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Boron (B)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Boron (B)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="cobalt">
+            <td style="vertical-align: text-top;">
+              <strong>Cobalt (Co)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Cobalt (Co)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Cobalt (Co)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Cobalt (Co)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Cobalt (Co)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="copper">
+            <td style="vertical-align: text-top;">
+              <strong>Copper (Cu)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Copper (Cu)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Copper (Cu)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Copper (Cu)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Copper (Cu)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="iron">
+            <td style="vertical-align: text-top;">
+              <strong>Iron (Fe)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Iron (Fe)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Iron (Fe)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Iron (Fe)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Iron (Fe)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="manganese">
+            <td style="vertical-align: text-top;">
+              <strong>Manganese (Mn)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Manganese (Mn)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Manganese (Mn)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Manganese (Mn)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Manganese (Mn)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="molybdenum">
+            <td style="vertical-align: text-top;">
+              <strong>Molybdenum (Mo)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Molybdenum (Mo)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Molybdenum (Mo)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Molybdenum (Mo)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Molybdenum (Mo)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="nickel">
+            <td style="vertical-align: text-top;">
+              <strong>Nickel (Ni)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nickel (Ni)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nickel (Ni)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nickel (Ni)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nickel (Ni)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="selenium">
+            <td style="vertical-align: text-top;">
+              <strong>Selenium (Se)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Selenium (Se)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Selenium (Se)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Selenium (Se)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Selenium (Se)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="silica">
+            <td style="vertical-align: text-top;">
+              <strong>Silica (Si)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Silica (Si)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Silica (Si)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Silica (Si)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Silica (Si)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="zinc">
+            <td style="vertical-align: text-top;">
+              <strong>Zinc (Zn)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Zinc (Zn)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Zinc (Zn)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Zinc (Zn)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Zinc (Zn)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="nitrogen-parameters colored-row" style="background-color: #f7b330;">
+            <td>
+              <strong style="font-size: 8pt;">Nitrogen Parameters</strong>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+            </td>
+            <td>
+            </td>
+          </tr>
+          <tr class="nitrogen-ammonium">
+            <td style="vertical-align: text-top;">
+              <strong>Nitrogen as Ammonium (NH4)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen as Ammonium (NH4)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen as Ammonium (NH4)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen as Ammonium (NH4)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen as Ammonium (NH4)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="nitrogen-nitrate">
+            <td style="vertical-align: text-top;">
+              <strong>Nitrogen as Nitrate (NO3)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen as Nitrate (NO3)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen as Nitrate (NO3)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen as Nitrate (NO3)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen as Nitrate (NO3)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="nitrogen-total">
+            <td style="vertical-align: text-top;">
+              <strong>Nitrogen, Total</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen, Total');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrogen, Total');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen, Total');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrogen, Total');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+          <tr class="nitrate">
+            <td style="vertical-align: text-top;">
+              <strong>Nitrate (NO3)</strong>
+            </td>
+            <td>
+              <div>ppm</div>
+              <div>ppm</div>
+            </td>
+            <td style="padding-left: 25px;">
+              <div>
+                <span class="high-ol">High: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrate (NO3)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_high_level(analysis)" class="high-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+              <div>
+                <span class="low-ol">Low: </span>
+                  <tal:model repeat="model collection">
+                    <tal:anlys repeat="analysis python:view.get_analyses_by(model, title='Nitrate (NO3)');">
+                        <span tal:condition="model/NewLeaf" tal:content="python:model.get_optimal_low_level(analysis)" class="low-spec"></span>
+                    </tal:anlys>
+                  </tal:model>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrate (NO3)');">
+                  <div tal:repeat="analysis analyses">
+                    <div class="result">
+                      <div tal:condition="model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                      <div tal:condition="not: model/NewLeaf" tal:replace="analysis/Result">NT</div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+            <td style="border-right: 1pt black solid; text-align: Right; padding-right: 5pt;">
+              <div>1</div>
+              <div>2</div>
+            </td>
+            <td>
+              <tal:model repeat="model collection">
+                <tal:anlys define="analyses python:view.get_analyses_by(model, title='Nitrate (NO3)');">
+                  <div tal:repeat="analysis analyses">
+                    <div tal:define="perc python:model.get_result_bar_percentage(analysis)">
+                      <div tal:condition="model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-bottom:3px;;height:5pt;;background: rgb(100,212,70);;"></div>
+                      <div tal:condition="not: model/NewLeaf" tal:attributes="style string:width:${perc}%;;margin-top:3px;;height:5pt;;background: rgb(46,99,29);;"></div>
+                    </div>
+                  </div>
+                </tal:anlys>
+              </tal:model>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</tal:report>

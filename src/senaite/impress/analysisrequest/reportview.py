@@ -15,7 +15,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# Copyright 2018-2021 by it's authors.
+# Copyright 2018-2020 by it's authors.
 # Some rights reserved, see README and LICENSE.
 
 from collections import Iterable
@@ -138,6 +138,90 @@ class ReportView(Base):
         """Returns the footer text from the setup
         """
         return api.get_registry_record("senaite.impress.footer")
+
+#Start Custom Methods
+    def get_IDs(self, model_or_collection):
+        """Returns the IDs of all of the ARs
+        """
+        id_list = self.to_list(model_or_collection)
+        ids = []
+        for x in id_list:
+            ids.append(x.getId())
+        return ids
+
+    def get_sample_count(self, model_or_collection):
+        """Returns the number of samples in the report
+        """
+        supermodels = self.to_list(model_or_collection)
+        count = 0;
+        for x in supermodels:
+            count +=1
+        return count
+
+    def get_sap_report_count(self, model_or_collection):
+        """Returns the number of pages in a comparison sap report.
+        """
+        samples = self.get_sample_count(model_or_collection)
+        sample_pages = samples/2
+        cover_letter = 1
+        blank_page = 1
+        COC = 1 #Needs to be made dynamic
+        count = sample_pages + cover_letter + blank_page + COC
+        return count
+
+    def get_subgroups(self, model_or_collection):
+        """Returns the unique SubGroup Titles of all of the ARs
+        """
+        id_list = self.to_list(model_or_collection)
+        subgroups = []
+        for x in id_list:
+            if x.SubGroup.Title in subgroups:
+                pass
+            else:
+                subgroups.append(x.SubGroup.Title)
+        return subgroups
+
+    def get_subcollection(self, model_or_collection, subgroup):
+        """Returns only the ARs within the current subgroup
+        """
+        id_list = self.to_list(model_or_collection)
+        subcollection = []
+        for x in id_list:
+            if x.SubGroup.Title == subgroup:
+                subcollection.append(x)
+        return subcollection
+
+    def get_new_model(self, subcollection):
+        """Returns only the model listed as *New Growth*
+        """
+        id_list = self.to_list(subcollection)
+        new_growth = []
+        for x in id_list:
+            if x.NewLeaf == True:
+                new_growth.append(x)
+        return new_growth[0]
+
+    def get_old_model(self, subcollection):
+        """Returns only the model listed as *Old Growth*
+        """
+        id_list = self.to_list(subcollection)
+        old_growth = []
+        for x in id_list:
+            if x.NewLeaf == False:
+                old_growth.append(x)
+        return old_growth[0]
+
+    def get_one_model(self, collection):
+        """Returns the first model of a collection
+        """
+        return collection[0]
+
+    def get_today(self):
+        """Returns today's date as [Month Day, Year]
+        Example: October 16th, 2020
+        """
+        return date.today().strftime("%B %d, %Y")
+#End Custom Methods
 
     def get_analyses(self, model_or_collection):
         """Returns a flat list of all analyses for the given model or collection
