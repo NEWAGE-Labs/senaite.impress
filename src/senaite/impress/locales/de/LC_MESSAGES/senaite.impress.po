@@ -59,7 +59,7 @@ msgstr "Batch ID"
 
 #: senaite/impress/templates/reports/Default.pt:348
 #: senaite/impress/templates/reports/MultiDefault.pt:359
-msgid "Batch Labels"
+msgid "SDG Labels"
 msgstr "Batch Etiketten"
 
 #: senaite/impress/templates/publish.pt:82

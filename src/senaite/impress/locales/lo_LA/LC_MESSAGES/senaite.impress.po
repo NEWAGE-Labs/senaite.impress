@@ -55,7 +55,7 @@ msgstr ""
 
 #: senaite/impress/templates/reports/Default.pt:348
 #: senaite/impress/templates/reports/MultiDefault.pt:359
-msgid "Batch Labels"
+msgid "SDG Labels"
 msgstr ""
 
 #: senaite/impress/templates/publish.pt:82
